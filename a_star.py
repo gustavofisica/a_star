@@ -1,5 +1,4 @@
-from dis import dis
-import math
+from queue import PriorityQueue
 from dists import dists, straight_line_dists_from_bucharest
 
 # goal sempre sera 'bucharest'
@@ -10,52 +9,49 @@ def a_star(start, goal='Bucharest'):
     Retorna uma lista com o caminho de start até 
     goal segundo o algoritmo A*
     """
-    road = []
-    border = {}
-    heuristics = straight_line_dists_from_bucharest
+    border = PriorityQueue()
+    exploited = {}
     cities = dists
-    node = start
+    heuristics = straight_line_dists_from_bucharest
     dist = 0
 
-    while not is_bucharest(node, goal):
-        try:
+    border.put((evaluation_function(dist, heuristics[start]), start, [start]))
+    exploited[start] = evaluation_function(dist, heuristics[start])
 
-            for city in cities[node]:
-                city_name = city[0]
-                total_dist = dist + city[1]
-                heuristic = heuristics[city_name]
-                value_valuation = valuation_calculation(total_dist, heuristic)
-                border[city_name] = [value_valuation, total_dist, heuristic]
+    while is_bucharest(border):
+        (evaluation, node, road) = border.get()
+        if node == goal:
+            return road
+        for next_node in cities[node]:
+            city_name = next_node[0]
+            city_dist = next_node[1]
+            new_evaluation = evaluation_function(
+                city_dist, heuristics[city_name])
 
-            best_city = min(border, key=border.get)
-            node = best_city
-            dist = border[node][1]
-            print(border)
-            print(node)
-            print(dist)
-            border.pop(node)
-
-        except:
-            print('Fail')
-
-    return road
+            if city_name not in exploited or evaluation >= new_evaluation:
+                exploited[city_name] = new_evaluation
+                border.put((new_evaluation, city_name, road + [city_name]))
+                dist = city_dist + dist
 
 
-def valuation_calculation(cost, heuristic):
-    """
-    Retorna o valor da função de avaliação,
-    a soma entre custo e heurística"""
+def is_bucharest(priority_queue: PriorityQueue):
+    """Verifica se a lista de prioridades não está vazia.
+    Ou seja, se todos os nós já foram avaliados."""
+    return not priority_queue.empty()
+
+
+def evaluation_function(cost, heuristic):
+    """Realiza soma de custo e heurística para
+    função de avaliação."""
     return cost + heuristic
 
+def main():
+    origin = ''
+    while origin not in dists.keys():
+        origin = input('Digite a origem: ').capitalize()
+    road = a_star(origin)
+    print('Caminho encontrado por busca A*')
+    print(' -> '.join(city for city in road))
 
-def is_bucharest(node, goal):
-    """
-    Testa se a cidade no nó é o objetivo.
-    Se for Bucharest, retorna True;"""
-    if node == goal:
-        return True
-    else:
-        return False
-
-
-a_star('Arad')
+if __name__ == '__main__':
+    main()
